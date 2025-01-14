@@ -1,13 +1,13 @@
 [package]
 name = "simple-ternary"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Ozymandias <alayakiire@gmail.com>"]
 license = "MIT"
 description = "A simple macro for C/C++ style ternary expressions in Rust."
 repository = "https://github.com/aquarius2019/ternary"
 homepage = "https://github.com/aquarius2019/ternary"
-documentation = "https://docs.rs/ternary"
+documentation = "https://docs.rs/simple-ternary"
 
 [lib]
 proc-macro = true
