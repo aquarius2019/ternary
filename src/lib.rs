@@ -16,7 +16,17 @@ struct Ternary {
 impl Parse for Ternary {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let condition = input.parse()?;
-        input.parse::<Token![?]>()?;
+
+        #[cfg(not(feature = "try"))]
+        {
+            input.parse::<Token![?]>()?;
+        }
+
+        #[cfg(feature = "try")]
+        {
+            input.parse::<Token![=>]>()?;
+        }
+        
         let true_branch = input.parse()?;
         input.parse::<Token![:]>()?;
         let false_branch = input.parse()?;
@@ -74,21 +84,39 @@ impl Parse for Expression {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let expr: syn::Expr = input.parse()?;
 
-        if input.peek(Token![?]) {
-            input.parse::<Token![?]>()?;
-            let true_branch = input.parse()?;
-            input.parse::<Token![:]>()?;
-            let false_branch = input.parse()?;
-
-            Ok(Self::Ternary(Box::new(Ternary {
-                condition: expr,
-                true_branch,
-                false_branch,
-            })))
-        } 
-        else {
-            Ok(Self::Simple(SimpleExpression { expr }))
+        #[cfg(not(feature = "try"))]
+        {
+            if input.peek(Token![?]) {
+                input.parse::<Token![?]>()?;
+                let true_branch = input.parse()?;
+                input.parse::<Token![:]>()?;
+                let false_branch = input.parse()?;
+    
+                return Ok(Self::Ternary(Box::new(Ternary {
+                    condition: expr,
+                    true_branch,
+                    false_branch,
+                })))
+            } 
         }
+        
+        #[cfg(feature = "try")]
+        {
+            if input.peek(Token![=>]) {
+                input.parse::<Token![=>]>()?;
+                let true_branch = input.parse()?;
+                input.parse::<Token![:]>()?;
+                let false_branch = input.parse()?;
+    
+                return Ok(Self::Ternary(Box::new(Ternary {
+                    condition: expr,
+                    true_branch,
+                    false_branch,
+                })))
+            } 
+        }
+    
+        Ok(Self::Simple(SimpleExpression { expr }))
     }
 }
 
@@ -131,6 +159,18 @@ impl Parse for Expression {
 ///
 /// This macro evaluates the condition and returns the corresponding expression based on its truth value.
 ///
+/// ## Important!!!
+/// The `?` operator must be replaced with the `=>` operator if the `try` feature is enabled.
+/// The `try` feature allows the `?` operator to be used in the macro's expressions. For example:
+/// 
+/// ```rust
+/// let age = Ok(5);
+/// let category = tnr!{ age? < 18 => "child" : "adult" };
+/// ```
+/// This syntax change is necessary because the ? operator is reserved for error handling in Rust.
+/// Future versions of this crate may switch to use the => operator only.
+/// For now, the ? operator is used to maintain syntax compatibility with C/C++.
+/// 
 /// # Note
 ///
 /// Ensure that both `true_expr` and `false_expr` are of the same type or can be converted to a common type
