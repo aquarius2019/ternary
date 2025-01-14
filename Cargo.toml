@@ -3,6 +3,7 @@ name = "ternary"
 version = "0.1.0"
 edition = "2021"
 authors = ["Ozymandias <alayakiire@gmail.com>"]
+license = "MIT"
 description = "A simple macro for C/C++ style ternary expressions in Rust."
 repository = "https://github.com/aquarius2019/ternary"
 homepage = "https://github.com/aquarius2019/ternary"
