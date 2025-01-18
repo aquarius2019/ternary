@@ -17,15 +17,7 @@ impl Parse for Ternary {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let condition = input.parse()?;
 
-        #[cfg(not(feature = "try"))]
-        {
-            input.parse::<Token![?]>()?;
-        }
-
-        #[cfg(feature = "try")]
-        {
-            input.parse::<Token![=>]>()?;
-        }
+        input.parse::<Token![=>]>()?;
         
         let true_branch = input.parse()?;
         input.parse::<Token![:]>()?;
@@ -84,36 +76,17 @@ impl Parse for Expression {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let expr: syn::Expr = input.parse()?;
 
-        #[cfg(not(feature = "try"))]
-        {
-            if input.peek(Token![?]) {
-                input.parse::<Token![?]>()?;
-                let true_branch = input.parse()?;
-                input.parse::<Token![:]>()?;
-                let false_branch = input.parse()?;
-    
-                return Ok(Self::Ternary(Box::new(Ternary {
-                    condition: expr,
-                    true_branch,
-                    false_branch,
-                })))
-            } 
-        }
-        
-        #[cfg(feature = "try")]
-        {
-            if input.peek(Token![=>]) {
-                input.parse::<Token![=>]>()?;
-                let true_branch = input.parse()?;
-                input.parse::<Token![:]>()?;
-                let false_branch = input.parse()?;
-    
-                return Ok(Self::Ternary(Box::new(Ternary {
-                    condition: expr,
-                    true_branch,
-                    false_branch,
-                })))
-            } 
+        if input.peek(Token![=>]) {
+            input.parse::<Token![=>]>()?;
+            let true_branch = input.parse()?;
+            input.parse::<Token![:]>()?;
+            let false_branch = input.parse()?;
+
+            return Ok(Self::Ternary(Box::new(Ternary {
+                condition: expr,
+                true_branch,
+                false_branch,
+            })))
         }
     
         Ok(Self::Simple(SimpleExpression { expr }))
@@ -125,7 +98,7 @@ impl Parse for Expression {
 /// # Syntax
 ///
 /// ```rust
-/// tnr!{ condition ? true_expr : false_expr }
+/// tnr!{ condition => true_expr : false_expr }
 /// ```
 ///
 /// - `condition`: An expression that evaluates to a boolean.
@@ -138,7 +111,7 @@ impl Parse for Expression {
 ///
 /// ```rust
 /// let age = 20;
-/// let category = tnr!{ age < 18 ? "child" : "adult" };
+/// let category = tnr!{ age < 18 => "child" : "adult" };
 /// assert_eq!(category, "adult");
 /// ```
 ///
@@ -149,32 +122,18 @@ impl Parse for Expression {
 /// ```rust
 /// let score = 85;
 /// let grade = tnr! {
-///     score >= 90 ? "A" :
-///     score >= 80 ? "B" :
-///     score >= 70 ? "C" :
-///     score >= 60 ? "D" : "F"
+///     score >= 90 => "A" :
+///     score >= 80 => "B" :
+///     score >= 70 => "C" :
+///     score >= 60 => "D" : "F"
 /// };
 /// assert_eq!(grade, "B");
 /// ```
-///
 /// This macro evaluates the condition and returns the corresponding expression based on its truth value.
 ///
-/// ## Important!!!
-/// The `?` operator must be replaced with the `=>` operator if the `try` feature is enabled.
-/// The `try` feature allows the `?` operator to be used in the macro's expressions. For example:
-/// 
-/// ```rust
-/// let age = Ok(5);
-/// let category = tnr!{ age? < 18 => "child" : "adult" };
-/// ```
-/// This syntax change is necessary because the ? operator is reserved for error handling in Rust.
-/// Future versions of this crate may switch to use the => operator only.
-/// For now, the ? operator is used to maintain syntax compatibility with C/C++.
-/// 
 /// # Note
-///
-/// Ensure that both `true_expr` and `false_expr` are of the same type or can be converted to a common type
-/// to avoid type mismatches.
+/// * The `?` operator is replaced with the `=>` operator because `?`` is reserved for error handling in Rust.
+/// * Ensure that both `true_expr` and `false_expr` are of the same type or can be converted to a common type to avoid type mismatches.
 #[proc_macro]
 pub fn tnr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let tern = parse_macro_input!(input as Ternary);
